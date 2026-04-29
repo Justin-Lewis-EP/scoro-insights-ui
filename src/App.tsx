@@ -9,6 +9,7 @@ import {
   FormControl,
   IconButton,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -29,6 +30,7 @@ import {
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
+import RefreshIcon from '@mui/icons-material/Refresh'
 
 interface Task {
   task_id: number
@@ -88,7 +90,8 @@ const COLUMNS: { key: keyof Task; label: string }[] = [
 export default function App() {
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCreator, setSelectedCreator] = useState('all')
   const [sortKey, setSortKey] = useState<keyof Task>('created_date')
@@ -107,7 +110,10 @@ export default function App() {
   const friday = new Date(monday)
   friday.setDate(monday.getDate() + 4)
 
-  useEffect(() => {
+  function loadTasks(isInitial = false) {
+    if (isInitial) setInitialLoad(true)
+    else setRefreshing(true)
+    setError(null)
     fetch('https://scoro-insights.onrender.com/api/tasks/weekly')
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -115,8 +121,13 @@ export default function App() {
       })
       .then((data: Task[]) => setTasks(data))
       .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => {
+        setInitialLoad(false)
+        setRefreshing(false)
+      })
+  }
+
+  useEffect(() => { loadTasks(true) }, [])
 
   const creators = ['all', ...Array.from(new Set(tasks.map(t => t.creator_name))).sort()]
 
@@ -137,19 +148,11 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
 
-      {loading && (
+      {initialLoad ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
           <CircularProgress />
         </Box>
-      )}
-
-      {error && (
-        <Container maxWidth="sm" sx={{ mt: 8 }}>
-          <Alert severity="error">Failed to load tasks: {error}</Alert>
-        </Container>
-      )}
-
-      {!loading && !error && (
+      ) : (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
           <AppBar position="static" elevation={0}>
             <Toolbar sx={{ gap: 1 }}>
@@ -157,6 +160,17 @@ export default function App() {
               <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
                 Scoro Insights
               </Typography>
+              <Tooltip title="Refresh data">
+                <span>
+                  <IconButton color="inherit" onClick={() => loadTasks(false)} disabled={refreshing}>
+                    <RefreshIcon sx={{
+                      transition: 'transform 0.3s',
+                      animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
+                      '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } },
+                    }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
               <Tooltip title={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
                 <IconButton color="inherit" onClick={() => setMode(m => m === 'light' ? 'dark' : 'light')}>
                   {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
@@ -166,6 +180,10 @@ export default function App() {
           </AppBar>
 
           <Container maxWidth="xl" sx={{ py: 4 }}>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>Failed to load tasks: {error}</Alert>
+            )}
+
             <Box
               sx={{
                 display: 'flex',
@@ -202,72 +220,86 @@ export default function App() {
               </FormControl>
             </Box>
 
-            <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2 }}>
-              <Table size="medium">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: mode === 'light' ? 'grey.50' : 'grey.900' }}>
-                    {COLUMNS.map(({ key, label }) => (
-                      <TableCell key={key} sortDirection={sortKey === key ? (sortAsc ? 'asc' : 'desc') : false}>
-                        <TableSortLabel
-                          active={sortKey === key}
-                          direction={sortKey === key ? (sortAsc ? 'asc' : 'desc') : 'asc'}
-                          onClick={() => handleSort(key)}
-                        >
-                          <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
-                            {label}
+            <Box sx={{ position: 'relative' }}>
+              {refreshing && (
+                <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1, borderRadius: '8px 8px 0 0' }} />
+              )}
+              <TableContainer
+                component={Paper}
+                elevation={1}
+                sx={{
+                  borderRadius: 2,
+                  opacity: refreshing ? 0.5 : 1,
+                  transition: 'opacity 0.2s ease',
+                  pointerEvents: refreshing ? 'none' : 'auto',
+                }}
+              >
+                <Table size="medium">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: mode === 'light' ? 'grey.50' : 'grey.900' }}>
+                      {COLUMNS.map(({ key, label }) => (
+                        <TableCell key={key} sortDirection={sortKey === key ? (sortAsc ? 'asc' : 'desc') : false}>
+                          <TableSortLabel
+                            active={sortKey === key}
+                            direction={sortKey === key ? (sortAsc ? 'asc' : 'desc') : 'asc'}
+                            onClick={() => handleSort(key)}
+                          >
+                            <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                              {label}
+                            </Typography>
+                          </TableSortLabel>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filtered.map(task => (
+                      <TableRow key={task.task_id} hover>
+                        <TableCell sx={{ maxWidth: 320 }}>
+                          <Typography
+                            component="a"
+                            href={`https://estiponagroup.scoro.com/tasks/view/${task.task_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="body2"
+                            sx={{ fontWeight: 500, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                          >
+                            {task.task_name}
                           </Typography>
-                        </TableSortLabel>
-                      </TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{task.project_name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{task.creator_name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={formatStatus(task.status)}
+                            color={STATUS_COLORS[task.status] ?? 'default'}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.created_date)}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filtered.map(task => (
-                    <TableRow key={task.task_id} hover>
-                      <TableCell sx={{ maxWidth: 320 }}>
-                        <Typography
-                          component="a"
-                          href={`https://estiponagroup.scoro.com/tasks/view/${task.task_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          variant="body2"
-                          sx={{ fontWeight: 500, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                        >
-                          {task.task_name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{task.project_name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{task.creator_name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={formatStatus(task.status)}
-                          color={STATUS_COLORS[task.status] ?? 'default'}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.created_date)}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    {filtered.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                          <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
           </Container>
         </Box>
       )}
