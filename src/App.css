@@ -1,0 +1,175 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f5f6f8;
+  color: #1a1a2e;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.controls select {
+  font-size: 0.875rem;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a2e;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.controls select:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+.table-wrapper {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  overflow: auto;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  min-width: 800px;
+}
+
+thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  background: #f1f5f9;
+  color: #374151;
+}
+
+.sort-icon {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+.sort-icon.active {
+  color: #6366f1;
+}
+
+tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+
+tbody tr:last-child {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+td {
+  padding: 12px 16px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+td.task-name {
+  font-weight: 500;
+  color: #0f172a;
+  max-width: 320px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.task_status1 { background: #f1f5f9; color: #475569; }
+.task_status2 { background: #dbeafe; color: #1d4ed8; }
+.task_status3 { background: #dcfce7; color: #15803d; }
+.task_status9 { background: #fef9c3; color: #92400e; }
+
+.state-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.state-msg.error {
+  color: #dc2626;
+}
+
+.empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 40px;
+}
