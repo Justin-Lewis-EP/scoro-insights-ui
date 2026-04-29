@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AppBar,
   Box,
   Chip,
   CircularProgress,
   Container,
+  CssBaseline,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -17,11 +19,16 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  ThemeProvider,
   Toolbar,
+  Tooltip,
   Typography,
   Alert,
+  createTheme,
 } from '@mui/material'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import LightModeIcon from '@mui/icons-material/LightMode'
 
 interface Task {
   task_id: number
@@ -79,12 +86,18 @@ const COLUMNS: { key: keyof Task; label: string }[] = [
 ]
 
 export default function App() {
+  const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCreator, setSelectedCreator] = useState('all')
   const [sortKey, setSortKey] = useState<keyof Task>('created_date')
   const [sortAsc, setSortAsc] = useState(false)
+
+  const theme = useMemo(
+    () => createTheme({ palette: { mode } }),
+    [mode],
+  )
 
   const today = new Date()
   const dayOfWeek = today.getDay()
@@ -120,137 +133,144 @@ export default function App() {
     else { setSortKey(key); setSortAsc(true) }
   }
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="sm" sx={{ mt: 8 }}>
-        <Alert severity="error">Failed to load tasks: {error}</Alert>
-      </Container>
-    )
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100' }}>
-      <AppBar position="static" elevation={0}>
-        <Toolbar sx={{ gap: 1 }}>
-          <CalendarTodayIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
-            Scoro Insights
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
 
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 2,
-            mb: 3,
-          }}
-        >
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              Weekly Tasks
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-              {formatShortDate(monday)} – {formatShortDate(friday)} &nbsp;·&nbsp; {filtered.length} of {tasks.length} tasks
-            </Typography>
-          </Box>
-
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel id="creator-label">Creator</InputLabel>
-            <Select
-              labelId="creator-label"
-              value={selectedCreator}
-              label="Creator"
-              onChange={e => setSelectedCreator(e.target.value)}
-            >
-              {creators.map(c => (
-                <MenuItem key={c} value={c}>
-                  {c === 'all' ? 'All creators' : c}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {loading && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+          <CircularProgress />
         </Box>
+      )}
 
-        <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2 }}>
-          <Table size="medium">
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.50' }}>
-                {COLUMNS.map(({ key, label }) => (
-                  <TableCell key={key} sortDirection={sortKey === key ? (sortAsc ? 'asc' : 'desc') : false}>
-                    <TableSortLabel
-                      active={sortKey === key}
-                      direction={sortKey === key ? (sortAsc ? 'asc' : 'desc') : 'asc'}
-                      onClick={() => handleSort(key)}
-                    >
-                      <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
-                        {label}
-                      </Typography>
-                    </TableSortLabel>
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.map(task => (
-                <TableRow key={task.task_id} hover>
-                  <TableCell sx={{ maxWidth: 320 }}>
-                    <Typography
-                      component="a"
-                      href={`https://estiponagroup.scoro.com/tasks/view/${task.task_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="body2"
-                      sx={{ fontWeight: 500, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      {task.task_name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{task.project_name}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{task.creator_name}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={formatStatus(task.status)}
-                      color={STATUS_COLORS[task.status] ?? 'default'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.created_date)}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Container>
-    </Box>
+      {error && (
+        <Container maxWidth="sm" sx={{ mt: 8 }}>
+          <Alert severity="error">Failed to load tasks: {error}</Alert>
+        </Container>
+      )}
+
+      {!loading && !error && (
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+          <AppBar position="static" elevation={0}>
+            <Toolbar sx={{ gap: 1 }}>
+              <CalendarTodayIcon sx={{ mr: 1 }} />
+              <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
+                Scoro Insights
+              </Typography>
+              <Tooltip title={mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
+                <IconButton color="inherit" onClick={() => setMode(m => m === 'light' ? 'dark' : 'light')}>
+                  {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+                </IconButton>
+              </Tooltip>
+            </Toolbar>
+          </AppBar>
+
+          <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 2,
+                mb: 3,
+              }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  Weekly Tasks
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                  {formatShortDate(monday)} – {formatShortDate(friday)} &nbsp;·&nbsp; {filtered.length} of {tasks.length} tasks
+                </Typography>
+              </Box>
+
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel id="creator-label">Creator</InputLabel>
+                <Select
+                  labelId="creator-label"
+                  value={selectedCreator}
+                  label="Creator"
+                  onChange={e => setSelectedCreator(e.target.value)}
+                >
+                  {creators.map(c => (
+                    <MenuItem key={c} value={c}>
+                      {c === 'all' ? 'All creators' : c}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2 }}>
+              <Table size="medium">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: mode === 'light' ? 'grey.50' : 'grey.900' }}>
+                    {COLUMNS.map(({ key, label }) => (
+                      <TableCell key={key} sortDirection={sortKey === key ? (sortAsc ? 'asc' : 'desc') : false}>
+                        <TableSortLabel
+                          active={sortKey === key}
+                          direction={sortKey === key ? (sortAsc ? 'asc' : 'desc') : 'asc'}
+                          onClick={() => handleSort(key)}
+                        >
+                          <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                            {label}
+                          </Typography>
+                        </TableSortLabel>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filtered.map(task => (
+                    <TableRow key={task.task_id} hover>
+                      <TableCell sx={{ maxWidth: 320 }}>
+                        <Typography
+                          component="a"
+                          href={`https://estiponagroup.scoro.com/tasks/view/${task.task_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="body2"
+                          sx={{ fontWeight: 500, color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                        >
+                          {task.task_name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{task.project_name}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{task.creator_name}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={formatStatus(task.status)}
+                          color={STATUS_COLORS[task.status] ?? 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.created_date)}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Container>
+        </Box>
+      )}
+    </ThemeProvider>
   )
 }
