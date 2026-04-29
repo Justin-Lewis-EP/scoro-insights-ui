@@ -41,6 +41,7 @@ interface Task {
   project_name: string
   status: string
   deadline: string
+  complexity: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -48,6 +49,12 @@ const STATUS_LABELS: Record<string, string> = {
   task_status2: 'In Progress',
   task_status3: 'Completed',
   task_status9: 'Pending',
+}
+
+const COMPLEXITY_COLORS: Record<string, 'success' | 'warning' | 'error'> = {
+  low: 'success',
+  medium: 'warning',
+  high: 'error',
 }
 
 const STATUS_COLORS: Record<string, 'default' | 'primary' | 'success' | 'warning'> = {
@@ -85,6 +92,7 @@ const COLUMNS: { key: keyof Task; label: string }[] = [
   { key: 'status', label: 'Status' },
   { key: 'created_date', label: 'Created' },
   { key: 'deadline', label: 'Deadline' },
+  { key: 'complexity', label: 'Complexity' },
 ]
 
 export default function App() {
@@ -287,11 +295,21 @@ export default function App() {
                         <TableCell>
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
                         </TableCell>
+                        <TableCell>
+                          {task.complexity
+                            ? <Chip
+                                label={task.complexity.charAt(0).toUpperCase() + task.complexity.slice(1)}
+                                color={COMPLEXITY_COLORS[task.complexity.toLowerCase()] ?? 'default'}
+                                size="small"
+                                variant="outlined"
+                              />
+                            : <Typography variant="body2">—</Typography>}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {filtered.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                        <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                           <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
                         </TableCell>
                       </TableRow>
