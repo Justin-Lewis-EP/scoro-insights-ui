@@ -6,6 +6,10 @@ import {
   CircularProgress,
   Container,
   CssBaseline,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
   FormControl,
   IconButton,
   InputLabel,
@@ -27,6 +31,7 @@ import {
   Alert,
   createTheme,
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
@@ -125,6 +130,7 @@ export default function App() {
   const [selectedCreator, setSelectedCreator] = useState('all')
   const [sortKey, setSortKey] = useState<keyof Task>('created_date')
   const [sortAsc, setSortAsc] = useState(false)
+  const [complexityModalOpen, setComplexityModalOpen] = useState(false)
 
   const theme = useMemo(
     () => createTheme({ palette: { mode } }),
@@ -333,6 +339,8 @@ export default function App() {
                                 color={COMPLEXITY_COLORS[task.complexity.toLowerCase()] ?? 'default'}
                                 size="small"
                                 variant="outlined"
+                                onClick={() => setComplexityModalOpen(true)}
+                                sx={{ cursor: 'pointer' }}
                               />
                             : <Typography variant="body2">—</Typography>}
                         </TableCell>
@@ -352,6 +360,75 @@ export default function App() {
           </Container>
         </Box>
       )}
+
+      <Dialog open={complexityModalOpen} onClose={() => setComplexityModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Complexity Score
+          <IconButton size="small" onClick={() => setComplexityModalOpen(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Each task is rated <strong>low</strong>, <strong>medium</strong>, or <strong>high</strong> based on four conditions.
+            Each condition produces a numeric score (1 = low, 2 = medium, 3 = high). The final rating is the <strong>average of all active condition scores</strong>.
+          </Typography>
+
+          {[
+            {
+              title: 'Condition 1 — Deadline duration',
+              subtitle: 'Days between task creation date and deadline.',
+              rows: [['0–2 days', '1 (low)'], ['3–7 days', '2 (medium)'], ['8+ days', '3 (high)']],
+            },
+            {
+              title: 'Condition 2 — Description length',
+              subtitle: 'Character count of the task description.',
+              rows: [['< 50', '1 (low)'], ['50–200', '2 (medium)'], ['> 200', '3 (high)']],
+            },
+            {
+              title: 'Condition 3 — Planned time',
+              subtitle: 'Hours allocated in Scoro.',
+              rows: [['≤ 1 hour', '1 (low)'], ['1–5 hours', '2 (medium)'], ['> 5 hours', '3 (high)']],
+            },
+            {
+              title: 'Condition 4 — Overtime ratio (conditional)',
+              subtitle: 'Only applied when actual time exceeds planned.',
+              rows: [['Actual ≤ planned', 'Not scored'], ['0–50% over', '2 (medium)'], ['> 50% over', '3 (high)']],
+            },
+          ].map(({ title, subtitle, rows }) => (
+            <Box key={title} sx={{ mb: 2.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{title}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>{subtitle}</Typography>
+              <Table size="small">
+                <TableBody>
+                  {rows.map(([cond, score]) => (
+                    <TableRow key={cond}>
+                      <TableCell sx={{ py: 0.5 }}><Typography variant="body2">{cond}</Typography></TableCell>
+                      <TableCell sx={{ py: 0.5 }}><Typography variant="body2" sx={{ color: 'text.secondary' }}>{score}</Typography></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          ))}
+
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Final rating thresholds</Typography>
+          <Table size="small">
+            <TableBody>
+              {[['< 1.5', 'low'], ['1.5–2.49', 'medium'], ['≥ 2.5', 'high']].map(([avg, rating]) => (
+                <TableRow key={avg}>
+                  <TableCell sx={{ py: 0.5 }}><Typography variant="body2">{avg}</Typography></TableCell>
+                  <TableCell sx={{ py: 0.5 }}>
+                    <Chip label={rating} color={COMPLEXITY_COLORS[rating] ?? 'default'} size="small" variant="outlined" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </ThemeProvider>
   )
 }
