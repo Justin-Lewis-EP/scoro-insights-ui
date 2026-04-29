@@ -42,6 +42,8 @@ interface Task {
   status: string
   deadline: string
   complexity: string
+  time_planned: string
+  time_actual: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,6 +70,23 @@ function formatStatus(s: string): string {
   return STATUS_LABELS[s] ?? s
 }
 
+function parseSeconds(t: string): number {
+  if (!t) return 0
+  const [h, m, s] = t.split(':').map(Number)
+  return (h || 0) * 3600 + (m || 0) * 60 + (s || 0)
+}
+
+function formatDuration(t: string): string {
+  if (!t) return '—'
+  const total = parseSeconds(t)
+  if (total === 0) return '0m'
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
 function formatDate(iso: string): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-US', {
@@ -92,6 +111,8 @@ const COLUMNS: { key: keyof Task; label: string }[] = [
   { key: 'status', label: 'Status' },
   { key: 'created_date', label: 'Created' },
   { key: 'deadline', label: 'Deadline' },
+  { key: 'time_planned', label: 'Planned' },
+  { key: 'time_actual', label: 'Actual' },
   { key: 'complexity', label: 'Complexity' },
 ]
 
@@ -296,6 +317,16 @@ export default function App() {
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>{formatDate(task.deadline)}</Typography>
                         </TableCell>
                         <TableCell>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {formatDuration(task.time_planned)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: parseSeconds(task.time_actual) > parseSeconds(task.time_planned) ? 'error.main' : 'text.secondary' }}>
+                            {formatDuration(task.time_actual)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           {task.complexity
                             ? <Chip
                                 label={task.complexity.charAt(0).toUpperCase() + task.complexity.slice(1)}
@@ -309,7 +340,7 @@ export default function App() {
                     ))}
                     {filtered.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                        <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                           <Typography variant="body2" sx={{ color: 'text.disabled' }}>No tasks found</Typography>
                         </TableCell>
                       </TableRow>
